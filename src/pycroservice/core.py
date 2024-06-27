@@ -44,7 +44,10 @@ def reqTok(request):
 
 
 def loggedInHandler(
-    required=None, ignore_password_change=False, ignore_mfa_check=False
+    required=None,
+    ignore_password_change=False,
+    ignore_mfa_check=False,
+    token_check=None,
 ):
     if required is None:
         required = []
@@ -56,6 +59,12 @@ def loggedInHandler(
 
             if token is None:
                 return jsonify({"status": "nope"}), 403
+
+            if token_check is not None and not token_check(token):
+                return (
+                    jsonify({"status": "error", "message": "failed token check"}),
+                    403,
+                )
 
             if token["user"]["require_password_change"]:
                 if not ignore_password_change:
