@@ -25,5 +25,5 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/inaimathi/pytrivialsql"
-Issues = "https://github.com/inaimathi/pytrivialsql/issues"
+Homepage = "https://github.com/Mycroft-io/pycroservice"
+Issues = "https://github.com/Mycroft-io/pycroservice/issues"
