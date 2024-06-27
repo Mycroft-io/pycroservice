@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycroservice"
+version = "0.0.1"
+authors = [
+  { name="inaimathi", email="leo.zovic@gmail.com" },
+]
+description = "A minimal Python microservice framework for Mycroft Technologies"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "Flask~=3.0",
+    "Flask-Cors~=4.0",
+    "pyjwt[crypto]~=2.8",
+    "scoutsuite~=5.5",
+    "gunicorn~=22.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/inaimathi/pytrivialsql"
+Issues = "https://github.com/inaimathi/pytrivialsql/issues"
