@@ -96,3 +96,75 @@ def loggedInHandler(
         return wrapper
 
     return decorator
+
+
+def makeRequireParamWrapper(param_name, new_param_name, transform_func):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if param_name not in kwargs:
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": f"Missing required parameter: {param_name}",
+                        }
+                    ),
+                    400,
+                )
+            transformed = transform_func(kwargs[param_name])
+            kwargs.pop(param_name)
+            kwargs[new_param_name] = transformed
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def makeRequireTokenWrapper(token_key, new_param_name, transform_func):
+    """Note that this wrapper depends on the loggedInHandler wrapper
+    or equivalent and assumes that token is passed as the first argument
+    into the resulting wrapped function.
+    This means that you have to call it like
+
+        requireExample = makeRequireTokenWrapper(["foo", "bar"], "baz", bazFromBar)
+        ...
+        @loggedInHandler()
+        @requireExample
+        def mumble(token, baz):
+          ...
+
+    AND NOT
+
+       ...
+       @requireExample
+       @loggedInHandler()
+       def mumble(token, baz):
+         ...
+
+    The latter will give you errors about how it didn't get a `token` argument.
+    """
+    assert type(token_key) in {str, list}
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(token, *args, **kwargs):
+            if isinstance(token_key, str):
+                keys = [token_key]
+            elif isinstance(token_key, list):
+                keys = token_key
+
+            value = token
+            for k in keys:
+                value = value.get(k)
+                if value is None:
+                    return jsonify({"status": "nope"}), 400
+            transformed = transform_func(value)
+            kwargs[new_param_name] = transformed
+
+            return func(token, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
