@@ -12,7 +12,12 @@ def pycroservice(app_name, static_url_path=None, blueprints=None):
         blueprints = []
     app = Flask(app_name, static_url_path=static_url_path)
     for bloop in blueprints:
-        app.register_blueprint(bloop)
+        if type(bloop) is Blueprint:
+            app.register_blueprint(bloop)
+        elif type(bloop) is tuple and len(bloop) == 2:
+            app.register_blueprint(bloop[1], url_prefix=bloop[0])
+        else:
+            raise Exception(f"Invalid blueprint: {bloop}")
     CORS(app)
     return app
 
