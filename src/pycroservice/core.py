@@ -3,12 +3,16 @@ from functools import wraps
 from os import environ as ENV
 
 import jwt
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 from flask_cors import CORS
 
 
-def pycroservice(app_name, static_url_path=None):
+def pycroservice(app_name, static_url_path=None, blueprints=None):
+    if blueprints is None:
+        blueprints = []
     app = Flask(app_name, static_url_path=static_url_path)
+    for bloop in blueprints:
+        app.register_blueprint(bloop)
     CORS(app)
     return app
 
