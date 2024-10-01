@@ -44,7 +44,11 @@ def encodeJwt(payload, private_key=None, issuer=None):
 
 def decodeJwt(token, pub_key=None, issuer=None):
     if pub_key is None:
-        pub_key = rsa.publicFromPem(ENV["JWT_SECRET"])
+        if "JWT_DECODE_KEY" in ENV:
+            pub_key = rsa.publicFromPem(ENV["JWT_DECODE_KEY"])
+        elif "JWT_SECRET" in ENV:
+            pub_key = rsa.publicFromPrivate(rsa.privateFromPem(ENV["JWT_SECRET"]))
+        raise Exception("pycroservice.core.decodeJwt: no-pubkey-given")
     if issuer is None:
         issuer = ENV["JWT_ISSUER"]
     try:
@@ -60,7 +64,7 @@ def _reqTok(request):
     token = request.headers.get("authorization")
     if token:
         token = re.sub("^Bearer ", "", token)
-        return decodeJwt(token, ENV["JWT_DECODE_KEY"], ENV["JWT_ISSUER"])
+        return decodeJwt(token)
 
 
 def loggedInHandler(
