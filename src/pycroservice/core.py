@@ -6,6 +6,8 @@ import jwt
 from flask import Blueprint, Flask, Response, jsonify, redirect, request
 from flask_cors import CORS
 
+from . import rsa
+
 
 def pycroservice(app_name, static_url_path=None, blueprints=None):
     if blueprints is None:
@@ -33,19 +35,37 @@ def reqVal(request, key, default=None):
     return default
 
 
-def decodeJwt(token):
+def getPubKey():
+    if "JWT_DECODE_KEY" in ENV:
+        return rsa.publicFromPem(ENV["JWT_DECODE_KEY"])
+    elif "JWT_SECRET" in ENV:
+        return rsa.publicFromPrivate(rsa.privateFromPem(ENV["JWT_SECRET"]))
+    raise Exception("pycroservice.core.decodeJwt: no-pubkey-provided")
+
+
+def encodeJwt(payload, private_key=None, issuer=None):
+    if issuer is None:
+        issuer = ENV["JWT_ISSUER"]
+    if private_key is None:
+        private_key = rsa.privateFromPem(ENV["JWT_SECRET"])
+    return rsa.encodeJwt(payload, private_key, ENV["JWT_ISSUER"])
+
+
+def decodeJwt(token, pub_key=None, issuer=None):
+    if pub_key is None:
+        pub_key = getPubKey()
+    if issuer is None:
+        issuer = ENV["JWT_ISSUER"]
     try:
         return jwt.decode(
-            token,
-            ENV["JWT_SECRET"],
-            issuer=ENV["JWT_ISSUER"],
-            algorithms=["HS512", "HS256"],
+            token, pub_key, issuer=issuer, algorithms=["RS256", "HS512", "HS256"]
         )
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
+        print(f"ERROR: {e}")
         return None
 
 
-def reqTok(request):
+def _reqTok(request):
     token = request.headers.get("authorization")
     if token:
         token = re.sub("^Bearer ", "", token)
@@ -64,7 +84,7 @@ def loggedInHandler(
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            token = reqTok(request)
+            token = _reqTok(request)
 
             if token is None:
                 return jsonify({"status": "nope"}), 403
