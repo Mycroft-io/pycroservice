@@ -49,7 +49,8 @@ def decodeJwt(token, pub_key=None, issuer=None):
             pub_key = rsa.publicFromPem(ENV["JWT_DECODE_KEY"])
         elif "JWT_SECRET" in ENV:
             pub_key = rsa.publicFromPrivate(rsa.privateFromPem(ENV["JWT_SECRET"]))
-        raise Exception("pycroservice.core.decodeJwt: no-pubkey-given")
+        else:
+            raise Exception("pycroservice.core.decodeJwt: no-pubkey-given")
     if issuer is None:
         issuer = ENV["JWT_ISSUER"]
     try:
