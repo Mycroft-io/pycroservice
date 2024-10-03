@@ -5,7 +5,8 @@ from os import environ as ENV
 import jwt
 from flask import Blueprint, Flask, Response, jsonify, redirect, request
 from flask_cors import CORS
-from src.pycroservice import rsa
+
+from . import rsa
 
 
 def pycroservice(app_name, static_url_path=None, blueprints=None):
