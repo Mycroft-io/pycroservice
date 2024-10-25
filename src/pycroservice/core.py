@@ -71,30 +71,11 @@ def _reqTok(request):
         token = re.sub("^Bearer ", "", token)
         return decodeJwt(token)
     
-def errorHandler(status_code, custom_message=None, details=None):
-    error_messages = {
-        400: "Invalid request.",
-        401: "Unauthorized access. Authentication is required.",
-        403: "Forbidden. You don't have permission to access this resource.",
-        404: "Resource not found.",
-        409: "Conflict. The resource already exists.",
-        413: "Payload too large.",
-        500: "Internal server error.",
-        501: "Not implemented",
-        503: "Service Unavailable"
-    }
-    
-    message = error_messages.get(status_code, "An unknown error occurred.")
-    
-    if custom_message:
-        message = f"{message}. Details: {custom_message}."
-        
-    if details:
-        message = f"{message}. {details}"
-
-    response = {"message": message}
-
-    return jsonify(response), status_code
+def jsonError(message, status_code, details=None):  
+    res = {"status": "error", "message": message}
+    if details is not None:
+        res["details"] = details
+    return jsonify(res), status_code
 
 
 def loggedInHandler(
@@ -112,7 +93,7 @@ def loggedInHandler(
             token = _reqTok(request)
 
             if token is None:
-                return errorHandler(403, "Forbidden")
+                return jsonError("Token is missing", 401)
 
             if token_check is not None and not token_check(token):
                 return (
@@ -142,7 +123,7 @@ def loggedInHandler(
             for param in required:
                 value = reqVal(request, param)
                 if value is None:
-                    return errorHandler(400, "No value found.")
+                    return jsonError("No value found", 400)
                 kwargs[param] = value
 
             return func(token, *args, **kwargs)
@@ -213,7 +194,7 @@ def makeRequireTokenWrapper(token_key, new_param_name, transform_func):
             for k in keys:
                 value = value.get(k)
                 if value is None:
-                    return errorHandler("No value found.")
+                    return jsonError("No value found.", 400)
             transformed = transform_func(value)
             kwargs[new_param_name] = transformed
 
