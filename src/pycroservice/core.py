@@ -70,6 +70,12 @@ def _reqTok(request):
     if token:
         token = re.sub("^Bearer ", "", token)
         return decodeJwt(token)
+    
+def jsonError(message, status_code, details=None):  
+    res = {"status": "error", "message": message}
+    if details is not None:
+        res["details"] = details
+    return jsonify(res), status_code
 
 
 def loggedInHandler(
@@ -87,7 +93,7 @@ def loggedInHandler(
             token = _reqTok(request)
 
             if token is None:
-                return jsonify({"status": "nope"}), 403
+                return jsonError("Token is missing", 401)
 
             if token_check is not None and not token_check(token):
                 return (
@@ -117,7 +123,7 @@ def loggedInHandler(
             for param in required:
                 value = reqVal(request, param)
                 if value is None:
-                    return jsonify({"status": "nope"}), 400
+                    return jsonError("No value found", 400)
                 kwargs[param] = value
 
             return func(token, *args, **kwargs)
@@ -188,7 +194,7 @@ def makeRequireTokenWrapper(token_key, new_param_name, transform_func):
             for k in keys:
                 value = value.get(k)
                 if value is None:
-                    return jsonify({"status": "nope"}), 400
+                    return jsonError("No value found.", 400)
             transformed = transform_func(value)
             kwargs[new_param_name] = transformed
 
