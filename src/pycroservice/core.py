@@ -152,7 +152,12 @@ def _assoc(val, keys, default=None):
 
 
 def makeTokenOrParamWrapper(
-    transform_func, new_param_name, from_params=None, from_token=None, required=False
+    transform_func,
+    new_param_name,
+    from_params=None,
+    from_token=None,
+    required=False,
+    prefer_token=False,
 ):
     """Note that this wrapper depends on the loggedInHandler wrapper
     or equivalent and assumes that token is passed as the first argument
@@ -189,7 +194,10 @@ def makeTokenOrParamWrapper(
             v_from_params = None
             if from_params is not None:
                 v_from_params = kwargs.get(from_params)
-            v = v_from_params or v_from_tok
+            if prefer_token:
+                v = v_from_tok or v_from_params
+            else:
+                v = v_from_params or v_from_tok
             if required and (v is None):
                 return jsonError(f"failed to find `{new_param_name}`", 400)
             transformed = transform_func(v_from_tok or v_from_params)
