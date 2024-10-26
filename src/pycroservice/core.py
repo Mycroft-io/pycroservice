@@ -189,7 +189,7 @@ def makeTokenOrParamWrapper(
             v_from_params = None
             if from_params is not None:
                 v_from_params = kwargs.get(from_params)
-            v = v_from_tok or v_from_params
+            v = v_from_params or v_from_tok
             if required and (v is None):
                 return jsonError(f"failed to find `{new_param_name}`", 400)
             transformed = transform_func(v_from_tok or v_from_params)
