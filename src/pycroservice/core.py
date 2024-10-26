@@ -100,8 +100,8 @@ def loggedInHandler(
             if token is None:
                 return jsonError("Token is missing", 401)
 
-            for sc in scopes:
-                if sc not in token["user"]["scopes"]:
+            if scopes is not None:
+                if set(scopes).intersection(token["user"]["scopes"]):
                     return jsonError("missing required scope", 403)
 
             if token["user"]["require_password_change"]:
