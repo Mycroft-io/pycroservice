@@ -122,11 +122,8 @@ def loggedInHandler(
                 value = reqVal(request, param)
                 kwargs[param] = value
 
-            if check is not None:
-                if not check(token, kwargs):
-                    return jsonError(
-                        "check failed", 403, details={"check": check.__name__}
-                    )
+            if (check is not None) and (not check(token, kwargs)):
+                return jsonError("check failed", 403, details={"check": check.__name__})
 
             return func(token, *args, **kwargs)
 
