@@ -123,8 +123,7 @@ def loggedInHandler(
                 kwargs[param] = value
 
             if check is not None:
-                res = check(token, kwargs)
-                if not res:
+                if not check(token, kwargs):
                     return jsonError(
                         "check failed", 403, details={"check": check.__name__}
                     )
