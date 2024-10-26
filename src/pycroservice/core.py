@@ -9,10 +9,10 @@ from flask_cors import CORS
 from . import rsa
 
 
-def pycroservice(app_name, static_url_path=None, blueprints=None):
+def pycroservice(app_name, static_url_path=None, static_folder=None, blueprints=None):
     if blueprints is None:
         blueprints = []
-    app = Flask(app_name, static_url_path=static_url_path)
+    app = Flask(app_name, static_url_path=static_url_path, static_folder=static_folder)
     for bloop in blueprints:
         if type(bloop) is Blueprint:
             app.register_blueprint(bloop)
@@ -70,8 +70,9 @@ def _reqTok(request):
     if token:
         token = re.sub("^Bearer ", "", token)
         return decodeJwt(token)
-    
-def jsonError(message, status_code, details=None):  
+
+
+def jsonError(message, status_code, details=None):
     res = {"status": "error", "message": message}
     if details is not None:
         res["details"] = details
@@ -80,12 +81,16 @@ def jsonError(message, status_code, details=None):
 
 def loggedInHandler(
     required=None,
+    optional=None,
+    scopes=None,
+    check=None,
     ignore_password_change=False,
     ignore_mfa_check=False,
-    token_check=None,
 ):
     if required is None:
         required = []
+    if optional is None:
+        optional = []
 
     def decorator(func):
         @wraps(func)
@@ -95,36 +100,34 @@ def loggedInHandler(
             if token is None:
                 return jsonError("Token is missing", 401)
 
-            if token_check is not None and not token_check(token):
-                return (
-                    jsonify({"status": "error", "message": "failed token check"}),
-                    403,
-                )
+            for sc in scopes:
+                if sc not in token["user"]["scopes"]:
+                    return jsonError("missing required scope", 403)
 
             if token["user"]["require_password_change"]:
                 if not ignore_password_change:
-                    return (
-                        jsonify(
-                            {
-                                "status": "error",
-                                "message": "you must change your password",
-                            }
-                        ),
-                        403,
-                    )
+                    return jsonError("you must change your password", 403)
 
             if token["user"]["mfa_enabled"] and not token.get("mfa_verified"):
                 if not ignore_mfa_check:
-                    return (
-                        jsonify({"status": "error", "message": "verify your MFA"}),
-                        403,
-                    )
+                    return jsonError("you must verify your MFA", 403)
 
             for param in required:
                 value = reqVal(request, param)
                 if value is None:
                     return jsonError("No value found", 400)
                 kwargs[param] = value
+
+            for param in optional:
+                value = reqVal(request, param)
+                kwargs[param] = value
+
+            if check is not None:
+                res = check(token, kwargs)
+                if not res:
+                    return jsonError(
+                        "check failed", 403, details={"check": check.__name__}
+                    )
 
             return func(token, *args, **kwargs)
 
@@ -133,37 +136,30 @@ def loggedInHandler(
     return decorator
 
 
-def makeRequireParamWrapper(param_name, new_param_name, transform_func):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if param_name not in kwargs:
-                return (
-                    jsonify(
-                        {
-                            "status": "error",
-                            "message": f"Missing required parameter: {param_name}",
-                        }
-                    ),
-                    400,
-                )
-            transformed = transform_func(kwargs[param_name])
-            kwargs.pop(param_name)
-            kwargs[new_param_name] = transformed
-            return func(*args, **kwargs)
+def _assoc(val, keys, default=None):
+    if isinstance(keys, str):
+        ks = [keys]
+    elif isinstance(keys, list):
+        ks = keys
 
-        return wrapper
+    value = val
+    for k in ks:
+        if k not in value:
+            return default
+        value = value[k]
 
-    return decorator
+    return value
 
 
-def makeRequireTokenWrapper(token_key, new_param_name, transform_func):
+def makeTokenOrParamWrapper(
+    transform_func, new_param_name, from_params=None, from_token=None, required=False
+):
     """Note that this wrapper depends on the loggedInHandler wrapper
     or equivalent and assumes that token is passed as the first argument
     into the resulting wrapped function.
     This means that you have to call it like
 
-        requireExample = makeRequireTokenWrapper(["foo", "bar"], "baz", bazFromBar)
+        requireExample = makeTokenOrParamWrapper(bazFromBar, "baz", from_token=["foo", "bar"])
         ...
         @loggedInHandler()
         @requireExample
@@ -180,24 +176,26 @@ def makeRequireTokenWrapper(token_key, new_param_name, transform_func):
 
     The latter will give you errors about how it didn't get a `token` argument.
     """
-    assert type(token_key) in {str, list}
+    assert type(from_token) in {str, list}
+    assert type(from_params) is str
+    assert from_params or from_token
 
     def decorator(func):
         @wraps(func)
         def wrapper(token, *args, **kwargs):
-            if isinstance(token_key, str):
-                keys = [token_key]
-            elif isinstance(token_key, list):
-                keys = token_key
-
-            value = token
-            for k in keys:
-                value = value.get(k)
-                if value is None:
-                    return jsonError("No value found.", 400)
-            transformed = transform_func(value)
+            v_from_tok = None
+            if from_token is not None:
+                v_from_tok = _assoc(token, from_token)
+            v_from_params = None
+            if from_params is not None:
+                v_from_params = kwargs.get(from_params)
+            v = v_from_tok or v_from_params
+            if required and (v is None):
+                return jsonError(f"failed to find `{new_param_name}`", 400)
+            transformed = transform_func(v_from_tok or v_from_params)
+            if from_params is not None:
+                kwargs.pop(from_params)
             kwargs[new_param_name] = transformed
-
             return func(token, *args, **kwargs)
 
         return wrapper
