@@ -79,6 +79,31 @@ def jsonError(message, status_code, details=None):
     return jsonify(res), status_code
 
 
+def _scope_check(token, scopes, params):
+    if scopes is None:
+        return True, None
+
+    user_scopes = set(token["user"]["scopes"])
+
+    if "godlike" in user_scopes:
+        return True, None
+
+    xorg_scopes = {f"xorg_{s}" for s in scopes}
+    full_scopes = xorg_scopes.union(scopes)
+
+    intersect = full_scopes.intersection(user_scopes)
+    if not intersect:
+        return False, "missing required scope"
+
+    if intersect and {s for s in intersect if s.startswith("xorg_")}:
+        return True, None
+
+    if "org_id" in params and (token["user"]["org"] != params["org_id"]):
+        return False, "no org permissions"
+
+    return False, "you're weird"
+
+
 def loggedInHandler(
     required=None,
     optional=None,
@@ -106,18 +131,9 @@ def loggedInHandler(
                     return jsonError("No value found", 400)
                 kwargs[param] = value
 
-            if scopes is not None:
-                user_scopes = set(token["user"]["scopes"])
-                xorg_scopes = {f"xorg_{s}" for s in scopes}
-                full_scopes = xorg_scopes.union(scopes)
-                if "godlike" in user_scopes:
-                    pass
-                elif not full_scopes.intersection(user_scopes):
-                    return jsonError("missing required scope", 403)
-                if "org_id" in kwargs and (
-                    not token["user"]["org"] == kwargs["org_id"]
-                ):
-                    return jsonError("no org permissions", 403)
+            scopes_passed, reason = _scope_check(token, scopes, kwargs)
+            if not scopes_passed:
+                return jsonError(reason, 403)
 
             if token["user"]["require_password_change"]:
                 if not ignore_password_change:
