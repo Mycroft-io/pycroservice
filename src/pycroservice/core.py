@@ -100,9 +100,24 @@ def loggedInHandler(
             if token is None:
                 return jsonError("Token is missing", 401)
 
+            for param in required:
+                value = reqVal(request, param)
+                if value is None:
+                    return jsonError("No value found", 400)
+                kwargs[param] = value
+
             if scopes is not None:
-                if set(scopes).intersection(token["user"]["scopes"]):
+                user_scopes = set(token["user"]["scopes"])
+                xorg_scopes = {f"xorg_{s}" for s in scopes}
+                full_scopes = xorg_scopes.union(scopes)
+                if "godlike" in user_scopes:
+                    pass
+                elif not full_scopes.intersection(user_scopes):
                     return jsonError("missing required scope", 403)
+                if "org_id" in kwargs and (
+                    not token["user"]["org"] == kwargs["org_id"]
+                ):
+                    return jsonError("no org permissions", 403)
 
             if token["user"]["require_password_change"]:
                 if not ignore_password_change:
@@ -111,12 +126,6 @@ def loggedInHandler(
             if token["user"]["mfa_enabled"] and not token.get("mfa_verified"):
                 if not ignore_mfa_check:
                     return jsonError("you must verify your MFA", 403)
-
-            for param in required:
-                value = reqVal(request, param)
-                if value is None:
-                    return jsonError("No value found", 400)
-                kwargs[param] = value
 
             for param in optional:
                 value = reqVal(request, param)
