@@ -222,7 +222,7 @@ def makeTokenOrParamWrapper(
             if required and (v is None):
                 return jsonError(f"failed to find `{new_param_name}`", 400)
             transformed = transform_func(v_from_tok or v_from_params)
-            if from_params is not None:
+            if (from_params is not None) and (from_params in kwargs):
                 kwargs.pop(from_params)
             kwargs[new_param_name] = transformed
             return func(token, *args, **kwargs)
