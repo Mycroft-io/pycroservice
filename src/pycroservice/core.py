@@ -98,6 +98,8 @@ def _scope_check(token, scopes, params):
     if intersect and {s for s in intersect if s.startswith("xorg_")}:
         return True, None
 
+    if "org_id" not in params:
+        return True, None
     if "org_id" in params and (token["user"]["org"] != params["org_id"]):
         return False, "no org permissions"
 
