@@ -125,11 +125,21 @@ def loggedInHandler(
             if token is None:
                 return jsonError("Token is missing", 401)
 
+            if "godlike" in token["user"]["scopes"]: 
+                if "org_id" in required: 
+                    org_id = reqVal(request, "org_id")
+                    if org_id is not None: 
+                        kwargs["org_id"] = org_id
+            else: 
+                kwargs["org_id"] = token["user"]["org"]
+
             for param in required:
                 value = reqVal(request, param)
                 if value is None:
                     return jsonError("No value found", 400)
                 kwargs[param] = value
+
+
 
             scopes_passed, reason = _scope_check(token, scopes, kwargs)
             if not scopes_passed:
