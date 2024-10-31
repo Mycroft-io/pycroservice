@@ -87,10 +87,14 @@ def _scope_check(token, scopes, params):
 
     if "godlike" in user_scopes:
         return True, None
-    
-    if "org_id" in params and (token["user"]["org"] == params["org_id"]) and ("org_admin" in user_scopes):
+
+    if (
+        "org_id" in params
+        and (token["user"]["org"] == params["org_id"])
+        and ("org_admin" in user_scopes)
+    ):
         return True, None
-    
+
     xorg_scopes = {f"xorg_{s}" for s in scopes}
     full_scopes = xorg_scopes.union(scopes)
 
