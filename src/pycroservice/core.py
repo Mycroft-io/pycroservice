@@ -139,8 +139,6 @@ def loggedInHandler(
                     return jsonError("No value found", 400)
                 kwargs[param] = value
 
-
-
             scopes_passed, reason = _scope_check(token, scopes, kwargs)
             if not scopes_passed:
                 return jsonError(reason, 403)
