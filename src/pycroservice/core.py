@@ -98,6 +98,8 @@ def _scope_check(token, scopes, params):
     if intersect and {s for s in intersect if s.startswith("xorg_")}:
         return True, None
 
+    if "org_id" not in params: 
+        return True, "None"
     if "org_id" in params and (token["user"]["org"] != params["org_id"]):
         return False, "no org permissions"
 
@@ -121,18 +123,10 @@ def loggedInHandler(
         @wraps(func)
         def wrapper(*args, **kwargs):
             token = _reqTok(request)
-
+            
             if token is None:
                 return jsonError("Token is missing", 401)
-
-            if "godlike" in token["user"]["scopes"]: 
-                if "org_id" in required: 
-                    org_id = reqVal(request, "org_id")
-                    if org_id is not None: 
-                        kwargs["org_id"] = org_id
-            else: 
-                kwargs["org_id"] = token["user"]["org"]
-
+            
             for param in required:
                 value = reqVal(request, param)
                 if value is None:
