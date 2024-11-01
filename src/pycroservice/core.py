@@ -109,7 +109,7 @@ def _scope_check(token, scopes, params):
         return True, None
     if "org_id" in params and (token["user"]["org"] != params["org_id"]):
         return False, "no org permissions"
-    if "org_id" in params and (token["user"]["org"] == params["org_id"]):
+    elif "org_id" in params and (token["user"]["org"] == params["org_id"]):
         return True, None
 
     return False, "you're weird"
