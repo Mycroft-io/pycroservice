@@ -22,3 +22,9 @@ def logger(name, level=logging.DEBUG):
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     return logger
+
+
+def is_global_scope(scope):
+    if scope in {"godlike", "server"} or scope.startswith("xorg_"):
+        return True
+    return False
