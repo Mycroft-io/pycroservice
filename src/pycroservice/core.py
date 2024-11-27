@@ -105,8 +105,6 @@ def _scope_check(token, scopes, params):
         if {f"{s}:org({org_id})" for s in scopes}.intersection(user_scopes):
             return True, None
         return False, "no org permissions"
-    else:
-        return True, None
 
     return False, "you're weird"
 
