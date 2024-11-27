@@ -98,8 +98,10 @@ def _scope_check(token, scopes, params):
     if user_global_scopes.intersection(scopes):
         return True, None
 
-    if "org_id" in params and ("org_admin" in user_scopes):
+    if "org_id" in params:
         org_id = params["org_id"]
+        if f"org_admin:org({org_id})" in user_scopes:
+            return True, None
         if {f"{s}:org({org_id})" for s in scopes}.intersection(user_scopes):
             return True, None
         return False, "no org permissions"
