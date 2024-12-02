@@ -6,7 +6,7 @@ import jwt
 from flask import Blueprint, Flask, Response, jsonify, redirect, request
 from flask_cors import CORS
 
-from . import rsa
+from . import rsa, util
 
 
 def pycroservice(app_name, static_url_path=None, static_folder=None, blueprints=None):
@@ -83,34 +83,28 @@ def _scope_check(token, scopes, params):
     if scopes is None:
         return True, None
 
-    user_scopes = set(token["user"]["scopes"])
+    user_scopes = {
+        f"{s['scope']}:org({s['org_id']})" if s["org_id"] else s["scope"]
+        for s in token["user"]["scopes"]
+    }
 
     if "godlike" in user_scopes:
         return True, None
 
-    if (
-        "org_id" in params
-        and (token["user"]["org"] == params["org_id"])
-        and ("org_admin" in user_scopes)
-    ):
+    user_global_scopes = {
+        s["scope"] for s in token["user"]["scopes"] if util.is_global_scope(s["scope"])
+    }
+
+    if user_global_scopes.intersection(scopes):
         return True, None
 
-    xorg_scopes = {f"xorg_{s}" for s in scopes}
-    full_scopes = xorg_scopes.union(scopes)
-
-    intersect = full_scopes.intersection(user_scopes)
-    if not intersect:
-        return False, "missing required scope"
-
-    if intersect and {s for s in intersect if s.startswith("xorg_")}:
-        return True, None
-
-    if "org_id" not in params:
-        return True, None
-    if "org_id" in params and (token["user"]["org"] != params["org_id"]):
+    if "org_id" in params:
+        org_id = params["org_id"]
+        if f"org_admin:org({org_id})" in user_scopes:
+            return True, None
+        if {f"{s}:org({org_id})" for s in scopes}.intersection(user_scopes):
+            return True, None
         return False, "no org permissions"
-    elif "org_id" in params and (token["user"]["org"] == params["org_id"]):
-        return True, None
 
     return False, "you're weird"
 
