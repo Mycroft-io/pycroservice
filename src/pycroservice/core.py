@@ -207,8 +207,8 @@ def makeTokenOrParamWrapper(
 
     The latter will give you errors about how it didn't get a `token` argument.
     """
-    assert type(from_token) in {str, list}
-    assert type(from_params) is str
+    assert from_token is None or (type(from_token) in {str, list})
+    assert from_params is None or type(from_params) is str
     assert from_params or from_token
 
     def decorator(func):
