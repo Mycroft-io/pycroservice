@@ -79,6 +79,10 @@ def jsonError(message, status_code, details=None):
     return jsonify(res), status_code
 
 
+def has_scope(token, scope, org_id):
+    return {"scope": scope, "org_id": org_id} in token["user"]["scopes"]
+
+
 def _scope_check(token, scopes, params):
     if scopes is None:
         return True, None
@@ -208,7 +212,7 @@ def makeTokenOrParamWrapper(
     The latter will give you errors about how it didn't get a `token` argument.
     """
     assert from_token is None or (type(from_token) in {str, list})
-    assert from_params is None or type(from_params) is str
+    assert from_params is None or (type(from_params) is str)
     assert from_params or from_token
 
     def decorator(func):
