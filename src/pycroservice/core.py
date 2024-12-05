@@ -43,12 +43,12 @@ def getPubKey():
     raise Exception("pycroservice.core.decodeJwt: no-pubkey-provided")
 
 
-def encodeJwt(payload, private_key=None, issuer=None):
+def encodeJwt(payload, private_key=None, issuer=None, expires_in=None):
     if issuer is None:
         issuer = ENV["JWT_ISSUER"]
     if private_key is None:
         private_key = rsa.privateFromPem(ENV["JWT_SECRET"])
-    return rsa.encodeJwt(payload, private_key, ENV["JWT_ISSUER"])
+    return rsa.encodeJwt(payload, private_key, ENV["JWT_ISSUER"], expires_in=expires_in)
 
 
 def decodeJwt(token, pub_key=None, issuer=None):
