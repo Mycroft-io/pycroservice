@@ -79,7 +79,7 @@ def jsonError(message, status_code, details=None):
     return jsonify(res), status_code
 
 
-def has_scope(token, scope, org_id):
+def hasScope(token, scope, org_id):
     return {"scope": scope, "org_id": org_id} in token["user"]["scopes"]
 
 
