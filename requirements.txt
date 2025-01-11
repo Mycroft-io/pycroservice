@@ -1,5 +1,4 @@
 Flask==3.0.3
 Flask-Cors==4.0.1
 pyjwt[crypto]==2.8.0
-scoutsuite==5.5.0
 gunicorn==22.0.0
