@@ -83,14 +83,13 @@ def hasScope(token, scope, org_id):
     return {"scope": scope, "org_id": org_id} in token["user"]["scopes"]
 
 
-def _scope_check(token, scopes, params, allow_invited=False):
+def _scope_check(token, scopes, params):
     if scopes is None:
         return True, None
 
-    status_filter = {"deactivated"} if allow_invited else {"deactivated", "invited"}
     user_scopes = {
         f"{s['scope']}:org({s['org_id']})" if s["org_id"] else s["scope"]
-        for s in token["user"]["scopes"] if s["status"] not in status_filter
+        for s in token["user"]["scopes"]
     }
 
     if "godlike" in user_scopes:
@@ -121,7 +120,6 @@ def loggedInHandler(
     check=None,
     ignore_password_change=False,
     ignore_mfa_check=False,
-    allow_invited=False,
 ):
     if required is None:
         required = []
@@ -142,9 +140,7 @@ def loggedInHandler(
                     return jsonError("No value found", 400)
                 kwargs[param] = value
 
-            scopes_passed, reason = _scope_check(
-                token, scopes, kwargs, allow_invited=allow_invited
-            )
+            scopes_passed, reason = _scope_check(token, scopes, kwargs)
             if not scopes_passed:
                 return jsonError(reason, 403)
 
